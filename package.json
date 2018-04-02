@@ -23,6 +23,7 @@
   "devDependencies": {
     "css-split": "^1.1.3",
     "http2": "^3.3.6",
-    "http2-static-server": "^1.0.0"
+    "http2-static-server": "^1.0.0",
+    "less": "^2.7.2"
   }
 }
