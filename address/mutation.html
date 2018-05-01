@@ -36,79 +36,95 @@
 </head>
 
 <body>
-	<form id="addressList" onsubmit="formSubmit(this); return false">
+	<form id="addressList">
 		<input>
 		<p class="help">Type an email address and hit enter</p>
 		<ul>
 		</ul>
 	</form>
 	<script>
+		(function() {
 			'use strict';
 
-			// Detect the change and sync model
-			let observer = new MutationObserver(function(mutations) {
-				for(let i in mutations) {
-					let mutation = mutations[i];
-					if (mutation.type == 'childList') { // will support only removing of items for demo
-						console.log('change detected', mutation);
-						let li = mutation.removedNodes[0];
-						if (!li) {return;} // not a deletion
-						list.splice(li._index);
-						console.log('deleted #', li._index, 'from', list);
-					}
-				}
-			});
-
-			// Start observing the target node for configured mutations
-			observer.observe(document.querySelector('#addressList ul'), {
-				childList:true
-			});
-			
 			// Model
 			const address = {
 				id: null,
 				value: ''
-			}
-			let list = [];
+			};
+			let list = [{id: 'test1', value: 'Test1'}, {id: 'test2', value: 'Test2'}];
 
-			// Handle form 
-			function formSubmit(form) {
-				let input = form.querySelector('input');
-				let item = Object.create(address);
-				item.id = String(Date.now());
-				item.value = input.value;
-				list.push(item);
-				console.log('form submit', form, item);
-				let ul = form.querySelector('ul');
-				render(form);
+			// Component
+			const component = {
+				data: null,
+				observer: null,
+				updateList(data) {
+					this.data = data;
+					let self = this;
+					
+					// Detect the change and sync model
+					if (!this.observer) {
+						let observer = new MutationObserver(function(mutations) {
+							for(let i in mutations) {
+								let mutation = mutations[i];
+								if (mutation.type == 'childList') { // will support only removing of items for the demo
+									console.log('change detected', mutation);
+									let li = mutation.removedNodes[0];
+									if (!li) {return;} // not a deletion
+									self.data.splice(li._index);
+									console.log('deleted #', li._index, 'from', list);
+								}
+							}
+						});
+
+						// Start observing the target node for configured mutations
+						observer.observe(this.querySelector('ul'), {
+							childList:true
+						});
+					};
+					this.removeEventListener('submit', this.addItem);
+					this.addEventListener('submit', this.addItem);
+					this.renderList();
+				},			
+				addItem(e) {
+					e.preventDefault();
+					let input = this.querySelector('input');
+					let item = Object.create(address);
+					item.id = String(Date.now());
+					item.value = input.value;
+					this.data.push(item);
+					console.log('Add item', item, this);
+					let ul = this.querySelector('ul');
+					this.renderList(item);
+					return false;
+				},
+				deleteItem(a) {
+					console.log('delete item', a);
+					a.parentNode.parentNode.removeChild(a.parentNode);
+				},
+				renderItem(item, index) {
+					console.log('render item', item);
+					let li = document.createElement('li');
+					li.innerHTML = '<a onclick="this.parentNode.parentNode.parentNode.deleteItem(this)" href="javascript:;">delete</a><span>' + item.value + '</span>';
+					li.setAttribute('id', item.id);
+					li._index = index;
+					return li;
+				},
+				renderList(item) {
+					let self = this;
+					let items = item ? [item] : this.data;
+					console.log('renderList', items);
+					let ul = this.querySelector('ul');
+					items.forEach(function(item, index) {
+						ul.appendChild(self.renderItem(item, index));
+					});
+				}
 			}
 
-			// Delete item from the DOM
-			function deleteItem(a) {
-				console.log('delete item', a);
-				a.parentNode.parentNode.removeChild(a.parentNode);
-			}
-
-			// Render list item
-			function renderItem(item, index) {
-				console.log('render item', item);
-				let li = document.createElement('li');
-				li.innerHTML = '<a onclick="deleteItem(this)" href="javascript:;">delete</a><span>' + item.value + '</span>';
-				li.setAttribute('id', item.id);
-				li._index = index;
-				return li;
-			}
-
-			// Render list when data is changed
-			function render(form) {
-				console.log('render', form, list);
-				let ul = form.querySelector('ul');
-				ul.innerHTML = '';
-				list.forEach(function(item, index) {
-					ul.appendChild(renderItem(item, index));
-				});
-			}
-
+			// Initialize component
+			let form = document.querySelector('#addressList');
+			Object.assign(form, component);
+			form.updateList(list);
+		})();
 	</script>
 </body>
 
